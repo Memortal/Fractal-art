@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rapid Accumulating Fractal Generator</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    overflow: hidden;
+  }
+  #canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Resize canvas to fill the browser window dynamically
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas, false);
+  resizeCanvas();
+
+  const iterations = 10000; // Reduced iterations for performance
+  let fractalInterval;
+
+  function generateRandomTransformations() {
+    const numTransforms = Math.floor(Math.random() * 4) + 2; // Between 2 and 5 transformations
+    const transformations = [];
+
+    for (let i = 0; i < numTransforms; i++) {
+      const a = Math.random() * 2 - 1; // Random number between -1 and 1
+      const b = Math.random() * 2 - 1;
+      const c = Math.random() * 2 - 1;
+      const d = Math.random() * 2 - 1;
+      const e = Math.random() * 2 - 1;
+      const f = Math.random() * 2 - 1;
+      let p = Math.random();
+      transformations.push({ a, b, c, d, e, f, p });
+    }
+
+    // Normalize probabilities
+    const totalP = transformations.reduce((sum, t) => sum + t.p, 0);
+    transformations.forEach(t => t.p /= totalP);
+
+    // Compute cumulative probabilities
+    for (let i = 1; i < transformations.length; i++) {
+      transformations[i].p += transformations[i - 1].p;
+    }
+
+    return transformations;
+  }
+
+  function generateFractal() {
+    // Do not clear the canvas to keep previous fractals
+    const transformations = generateRandomTransformations();
+
+    let x = 0;
+    let y = 0;
+
+    ctx.fillStyle = getRandomColor();
+
+    for (let i = 0; i < iterations; i++) {
+      const rand = Math.random();
+      let t;
+
+      for (let j = 0; j < transformations.length; j++) {
+        if (rand < transformations[j].p) {
+          t = transformations[j];
+          break;
+        }
+      }
+
+      const xNew = t.a * x + t.b * y + t.e;
+      const yNew = t.c * x + t.d * y + t.f;
+
+      x = xNew;
+      y = yNew;
+
+      // Transform coordinates to canvas space
+      const scale = Math.min(canvas.width, canvas.height) / 4;
+      const px = canvas.width / 2 + x * scale;
+      const py = canvas.height / 2 - y * scale;
+
+      // Draw pixel
+      ctx.fillRect(px, py, 1, 1);
+    }
+  }
+
+  function getRandomColor() {
+    // Generate a random color with some transparency
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    const a = 0.03; // Lower alpha value for more blending
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  function startFractalShow() {
+    generateFractal();
+    fractalInterval = setInterval(generateFractal, 100); // Generate fractal every 0.1 second
+  }
+
+  startFractalShow();
+
+</script>
+
+</body>
+</html>

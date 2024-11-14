@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Generational IFS Art</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+    #generationCounter {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="generationCounter">Generation: 0</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const generationDisplay = document.getElementById('generationCounter');
+
+  // Resize canvas to fill the window
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // IFS Transformations for a classic Barnsley fern-like fractal
+  let transformations = [
+    {a: 0.0, b: 0.0, c: 0.0, d: 0.16, e: 0.0, f: 0.0, p: 0.01, color: 'rgba(0, 255, 0, 0.1)'},
+    {a: 0.85, b: 0.04, c: -0.04, d: 0.85, e: 0.0, f: 1.6, p: 0.85, color: 'rgba(0, 255, 0, 0.1)'},
+    {a: 0.2, b: -0.26, c: 0.23, d: 0.22, e: 0.0, f: 1.6, p: 0.07, color: 'rgba(0, 200, 0, 0.1)'},
+    {a: -0.15, b: 0.28, c: 0.26, d: 0.24, e: 0.0, f: 0.44, p: 0.07, color: 'rgba(0, 150, 0, 0.1)'}
+  ];
+
+  let totalP = transformations.reduce((sum, t) => sum + t.p, 0);
+  transformations.forEach(t => t.cumulativeP = t.p / totalP + (t === transformations[0] ? 0 : transformations[transformations.indexOf(t) - 1].cumulativeP));
+
+  let x = 0;
+  let y = 0;
+  let iterationsPerGeneration = 5000;
+  let currentGeneration = 0;
+
+  // Function to generate a fractal generation
+  function generateGeneration() {
+    currentGeneration++;
+    generationDisplay.innerText = `Generation: ${currentGeneration}`;
+    for (let i = 0; i < iterationsPerGeneration; i++) {
+      const rand = Math.random();
+      let chosenTransform = transformations.find(t => rand < t.cumulativeP) || transformations[transformations.length - 1];
+
+      const xNew = chosenTransform.a * x + chosenTransform.b * y + chosenTransform.e;
+      const yNew = chosenTransform.c * x + chosenTransform.d * y + chosenTransform.f;
+
+      x = xNew;
+      y = yNew;
+
+      // Transform coordinates to canvas space
+      const px = canvas.width / 2 + x * canvas.width / 11;
+      const py = canvas.height - y * canvas.height / 11;
+
+      // Draw pixel
+      ctx.fillStyle = chosenTransform.color;
+      ctx.fillRect(px, py, 1, 1);
+    }
+  }
+
+  // Function to randomize transformations for more variety
+  function randomizeTransformations() {
+    transformations = transformations.map(t => ({
+      a: t.a + (Math.random() * 0.02 - 0.01),
+      b: t.b + (Math.random() * 0.02 - 0.01),
+      c: t.c + (Math.random() * 0.02 - 0.01),
+      d: t.d + (Math.random() * 0.02 - 0.01),
+      e: t.e + (Math.random() * 0.1 - 0.05),
+      f: t.f + (Math.random() * 0.1 - 0.05),
+      p: t.p,
+      color: `rgba(${Math.floor(Math.random() * 50)}, 255, ${Math.floor(Math.random() * 50)}, 0.1)`
+    }));
+
+    // Recalculate cumulative probabilities
+    totalP = transformations.reduce((sum, t) => sum + t.p, 0);
+    transformations.forEach(t => t.cumulativeP = t.p / totalP + (t === transformations[0] ? 0 : transformations[transformations.indexOf(t) - 1].cumulativeP));
+  }
+
+  // Initialize first generation
+  generateGeneration();
+
+  // Generate a new generation every 1 second
+  setInterval(() => {
+    randomizeTransformations();
+    generateGeneration();
+  }, 1000);
+</script>
+</body>
+</html>
